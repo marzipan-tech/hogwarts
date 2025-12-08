@@ -14,8 +14,10 @@ public class Faculty {
     private String name;
     private String colour;
 
-    public Faculty(Long id, String name, String colour) {
-        this.id = id;
+    public Faculty() {
+    }
+
+    public Faculty(String name, String colour) {
         this.name = name;
         this.colour = colour;
     }
