@@ -47,6 +47,6 @@ public class FacultyController {
 
     @GetMapping("/byAge")
     public List<Faculty> getFacultiesByAge(@RequestParam String colour) {
-        return facultyService.findFacultyByColour(colour);
+        return facultyService.findByColour(colour);
     }
 }
