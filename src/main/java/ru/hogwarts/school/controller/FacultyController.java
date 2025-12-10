@@ -26,7 +26,7 @@ public class FacultyController {
     }
 
     @PostMapping
-    public Faculty createFaculty(Faculty faculty) {
+    public Faculty createFaculty(@RequestBody Faculty faculty) {
         return facultyService.createFaculty(faculty);
     }
 
@@ -45,8 +45,8 @@ public class FacultyController {
         return "Факультет с идентификатором " + id + " удален";
     }
 
-    @GetMapping("/byAge")
-    public List<Faculty> getFacultiesByAge(@RequestParam String colour) {
-        return facultyService.findByColour(colour);
+    @GetMapping("/byColourOrName")
+    public List<Faculty> findByColourIgnoreCaseOrNameIgnoreCase(@RequestParam(required = false) String colour, @RequestParam(required = false) String name) {
+        return facultyService.findByColourIgnoreCaseOrNameIgnoreCase(colour, name);
     }
 }
