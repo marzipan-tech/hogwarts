@@ -26,7 +26,7 @@ public class StudentController {
     }
 
     @PostMapping
-    public Student createStudent(Student student) {
+    public Student createStudent(@RequestBody Student student) {
         return studentService.createStudent(student);
     }
 
@@ -48,5 +48,20 @@ public class StudentController {
     @GetMapping("/byAge")
     public List<Student> getStudentsByAge(@RequestParam int age) {
         return studentService.findByAge(age);
+    }
+
+    @GetMapping("/byAgeBetween")
+    public List<Student> getStudentsByAgeBetween(@RequestParam int min, @RequestParam int max) {
+        return studentService.findByAgeBetween(min, max);
+    }
+
+    @GetMapping
+    public List<Student> getAllStudents() {
+        return studentService.findAllStudents();
+    }
+
+    @GetMapping("/byFaculty/{id}")
+    public List<Student> findStudentsByFaculty(@PathVariable("id") Long facultyId) {
+        return studentService.findByFaculty(facultyId);
     }
 }
