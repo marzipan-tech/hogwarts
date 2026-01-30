@@ -1,163 +1,162 @@
 package ru.hogwarts.school;
 
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.AfterEach;
+
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import ru.hogwarts.school.controller.FacultyController;
+import ru.hogwarts.school.exceptions.NoSuchFacultyException;
 import ru.hogwarts.school.model.Faculty;
 import ru.hogwarts.school.model.Student;
 import ru.hogwarts.school.repository.FacultyRepository;
 import ru.hogwarts.school.repository.StudentRepository;
+import ru.hogwarts.school.service.FacultyService;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@WebMvcTest(FacultyController.class)
 public class FacultyControllerTests {
 
-    @LocalServerPort
-    private int port;
-
     @Autowired
-    private FacultyController facultyController;
+    private MockMvc mockMvc;
 
-    @Autowired
-    private TestRestTemplate restTemplate;
-
-    @Autowired
+    @MockitoBean
     private FacultyRepository facultyRepository;
 
-    @Autowired
+    @MockitoBean
+    private FacultyService facultyService;
+
+    @MockitoBean
     private StudentRepository studentRepository;
 
-    private URL baseUrl;
-    private Long savedFacultyId;
-    private Long savedStudentId;
-    private List<Long> savedFacultiesIds = new ArrayList<>();
+    JSONObject facultyObject = new JSONObject();
+    Faculty faculty = new Faculty();
+    final String name = "aaa";
+    final long id = 1L;
+    final String colour = "bbb";
 
     @BeforeEach
-    public void setUp() throws MalformedURLException {
-        this.baseUrl = new URL("http://localhost:" + port + "/faculties");
-    }
-
-    @AfterEach
-    public void cleanUp() {
-        if (savedStudentId != null) {
-            studentRepository.deleteById(savedStudentId);
-        }
-
-        if (savedFacultyId != null) {
-            facultyRepository.deleteById(savedFacultyId);
-        }
-
-        for (Long id : savedFacultiesIds) {
-            facultyRepository.deleteById(id);
-        }
-        savedFacultiesIds.clear();
+    void setUp() throws Exception {
+        facultyObject.put("name", name);
+        facultyObject.put("colour", colour);
+        faculty.setId(id);
+        faculty.setName(name);
+        faculty.setColour(colour);
     }
 
     @Test
-    public void contextLoads() throws Exception {
-        Assertions.assertThat(facultyController).isNotNull();
+    public void testCreateFaculty() throws Exception {
+        when(facultyRepository.save(any())).thenReturn(faculty);
+        when(facultyService.createFaculty(any())).thenReturn(faculty);
+        mockMvc.perform(MockMvcRequestBuilders
+                        .post("/faculties")
+                        .content(facultyObject.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.name").value(name))
+                .andExpect(jsonPath("$.colour").value(colour));
+    }
+
+    @Test
+    public void testEditFaculty() throws Exception {
+        when(facultyRepository.save(any())).thenReturn(faculty);
+        when(facultyService.editFaculty(any())).thenReturn(faculty);
+        facultyObject.put("id", id);
+        mockMvc.perform(MockMvcRequestBuilders
+                        .put("/faculties")
+                        .content(facultyObject.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.name").value(name))
+                .andExpect(jsonPath("$.colour").value(colour));
     }
 
     @Test
     public void testGetFacultyInfo() throws Exception {
-        Faculty faculty = facultyRepository.save(new Faculty("aaa", "bbb"));
-        this.savedFacultyId = faculty.getId();
-
-        ResponseEntity<Faculty> response = restTemplate.getForEntity(baseUrl.toString() + "/" + savedFacultyId, Faculty.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().getName()).isEqualTo(faculty.getName());
-        assertThat(response.getBody().getColour()).isEqualTo(faculty.getColour());
+        when(facultyService.findFaculty(eq(id))).thenReturn(faculty);
+        mockMvc.perform(MockMvcRequestBuilders
+                        .get("/faculties/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.name").value(name))
+                .andExpect(jsonPath("$.colour").value(colour));
     }
 
     @Test
-    void testCreateFaculty() throws Exception {
-        Faculty faculty = new Faculty("aaa", "bbb");
-        ResponseEntity<Faculty> response = restTemplate.postForEntity(baseUrl.toString(), faculty, Faculty.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().getName()).isEqualTo(faculty.getName());
-        assertThat(response.getBody().getColour()).isEqualTo(faculty.getColour());
-        this.savedFacultyId = response.getBody().getId();
+    public void testDeleteFaculty() throws Exception {
+        doNothing().when(facultyService).removeFaculty(eq(id));
+        mockMvc.perform(delete("/faculties/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.TEXT_PLAIN))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Факультет с идентификатором " + id + " удален")));
     }
 
     @Test
-    void testEditStudent() throws Exception {
-        Faculty faculty = facultyRepository.save(new Faculty("aaa", "bbb"));
-        faculty.setName("ccc");
-        faculty.setColour("ddd");
-        this.savedFacultyId = faculty.getId();
-        ResponseEntity<Faculty> response = restTemplate.exchange(baseUrl.toString(),
-                HttpMethod.PUT,
-                new HttpEntity<>(faculty),
-                Faculty.class
+    public void testDeleteNonExistingFaculty() throws Exception {
+        Long nonExistingId = 999L;
+        doThrow(new NoSuchFacultyException(nonExistingId)).when(facultyService).removeFaculty(eq(nonExistingId));
+        mockMvc.perform(delete("/faculties/{id}", nonExistingId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.TEXT_PLAIN))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string(containsString("Факультет с id " + nonExistingId + " не найден")));
+    }
+
+    @Test
+    public void testFindByColourIgnoreCaseOrNameIgnoreCase() throws Exception {
+        List<Faculty> faculties = Arrays.asList(
+                faculty,
+                new Faculty("a", colour)
         );
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().getName()).isEqualTo("ccc");
-        assertThat(response.getBody().getColour()).isEqualTo("ddd");
+        when(facultyService.findByColourIgnoreCaseOrNameIgnoreCase(colour, null)).thenReturn(faculties);
+        mockMvc.perform(MockMvcRequestBuilders
+                        .get("/faculties/byColourOrName?colour=" + colour)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$.[*].name", containsInAnyOrder("a", name)));
     }
 
     @Test
-    void testDeleteFaculty() throws Exception {
-        Faculty faculty = facultyRepository.save(new Faculty("aaa", "bbb"));
-
-        ResponseEntity<Void> response = restTemplate.exchange(baseUrl.toString() + "/" + faculty.getId(), HttpMethod.DELETE, null, Void.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(facultyRepository.existsById(faculty.getId())).isFalse();
-    }
-
-    @Test
-    void testFindByColourIgnoreCaseOrNameIgnoreCase() throws Exception {
-        Faculty savedFaculty = facultyRepository.save(new Faculty("aaa", "bbb"));
-        this.savedFacultyId = savedFaculty.getId();
-        String url = baseUrl.toString() + "/byColourOrName?name=aaa";
-        ParameterizedTypeReference<List<Faculty>> typeRef = new ParameterizedTypeReference<>() {
-        };
-        ResponseEntity<List<Faculty>> response = restTemplate.exchange(url, HttpMethod.GET, null, typeRef);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().stream()
-                .anyMatch(faculty -> Objects.equals(faculty.getName(), "aaa")))
-                .isTrue();
-    }
-
-    @Test
-    void testFindFacultyOfStudent() throws Exception {
-        Student student = new Student("Jane", 15);
-        Faculty faculty = facultyRepository.save(new Faculty("aaa", "bbb"));
-        this.savedFacultyId = faculty.getId();
-        student.setFaculty(faculty);
-        studentRepository.save(student);
-        this.savedStudentId = student.getId();
-
-        ResponseEntity<Faculty> response = restTemplate.getForEntity(baseUrl.toString() + "/faculty/" + student.getName(), Faculty.class);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isEqualTo(faculty);
-    }
-
-    @Test
-    void testGetNonExistingFacultyInfo() throws Exception {
-        Long nonExistingFacultyId = 24367658L;
-        ResponseEntity<Void> response = restTemplate.getForEntity(baseUrl.toString() + nonExistingFacultyId, Void.class);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    public void testFindFacultyOfStudent() throws Exception {
+        String studentName = "James";
+        Student student = new Student(studentName, 15);
+        when(studentRepository.findByNameIgnoreCase(anyString())).thenReturn(student);
+        when(facultyService.findFacultyOfStudent(studentName)).thenReturn(faculty);
+        mockMvc.perform(MockMvcRequestBuilders
+                        .get("/faculties/faculty/{name}", studentName)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.name").value(name))
+                .andExpect(jsonPath("$.colour").value(colour));
     }
 }
