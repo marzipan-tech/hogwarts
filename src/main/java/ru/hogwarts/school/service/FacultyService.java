@@ -1,11 +1,13 @@
 package ru.hogwarts.school.service;
 
 import org.springframework.stereotype.Service;
+import ru.hogwarts.school.exceptions.NoSuchFacultyException;
 import ru.hogwarts.school.model.Faculty;
 import ru.hogwarts.school.repository.FacultyRepository;
 import ru.hogwarts.school.repository.StudentRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class FacultyService {
@@ -22,15 +24,23 @@ public class FacultyService {
     }
 
     public Faculty findFaculty(Long id) {
-        return facultyRepository.findById(id).get();
+        return facultyRepository.findById(id).orElseThrow(()-> new NoSuchFacultyException(id));
     }
 
     public Faculty editFaculty(Faculty faculty) {
+        Optional<Faculty> existingFaculty = facultyRepository.findById(faculty.getId());
+        if (existingFaculty.isEmpty()) {
+            throw new NoSuchFacultyException(faculty.getId());
+        }
         return facultyRepository.save(faculty);
     }
 
     public void removeFaculty(Long id) {
-        facultyRepository.findById(id);
+        Optional<Faculty> facultyOptional = facultyRepository.findById(id);
+        if (facultyOptional.isEmpty()) {
+            throw new NoSuchFacultyException(id);
+        }
+        facultyRepository.deleteById(id);
     }
 
     public List<Faculty> findByColourIgnoreCaseOrNameIgnoreCase(String colour, String name) {

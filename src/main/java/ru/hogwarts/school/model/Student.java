@@ -17,7 +17,7 @@ public class Student {
     }
 
     @JsonIgnore
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "faculty_id")
     private Faculty faculty;
 
