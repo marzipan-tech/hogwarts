@@ -1,6 +1,8 @@
 package ru.hogwarts.school.service;
 
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -28,16 +30,20 @@ public class AvatarService {
     @Value("${path.to.avatars.folder}")
     private String avatarsDir;
 
+    private static final Logger logger = LoggerFactory.getLogger(AvatarService.class);
+
     public AvatarService(AvatarRepository avatarRepository, StudentRepository studentRepository) {
         this.avatarRepository = avatarRepository;
         this.studentRepository = studentRepository;
     }
 
     public Avatar findAvatar(long studentId) {
+        logger.info("Finding avatar method invoked");
         return avatarRepository.findByStudentId(studentId).orElse(new Avatar());
     }
 
     public void uploadAvatar(Long studentId, MultipartFile file) throws IOException {
+        logger.info("Uploading avatar method invoked");
         Student student = studentRepository.getById(studentId);
 
         Path filePath = Path.of(avatarsDir, student.getId() + "." + getExtension(file.getOriginalFilename()));
@@ -63,6 +69,7 @@ public class AvatarService {
     }
 
     private byte[] generateDataForDB(Path filePath) throws IOException {
+        logger.debug("Generating data fo DB method invoked");
         try (
                 InputStream is = Files.newInputStream(filePath);
                 BufferedInputStream bis = new BufferedInputStream(is, 1024);
@@ -80,10 +87,12 @@ public class AvatarService {
     }
 
     private String getExtension(String fileName) {
+        logger.debug("Getting extension method invoked");
         return fileName.substring(fileName.lastIndexOf(".") + 1);
     }
 
     public List<Avatar> getAllAvatars(Integer pageNumber, Integer pageSize) {
+        logger.info("Getting all avatars method invoked");
         PageRequest pageRequest = PageRequest.of(pageNumber - 1, pageSize);
         return avatarRepository.findAll(pageRequest).getContent();
     }
