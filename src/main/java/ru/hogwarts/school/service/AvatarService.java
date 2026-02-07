@@ -69,7 +69,7 @@ public class AvatarService {
     }
 
     private byte[] generateDataForDB(Path filePath) throws IOException {
-        logger.debug("Generating data fo DB method invoked");
+        logger.debug("Generating data for DB method invoked");
         try (
                 InputStream is = Files.newInputStream(filePath);
                 BufferedInputStream bis = new BufferedInputStream(is, 1024);
