@@ -35,7 +35,7 @@ public class StudentService {
 
     public Student findStudent(Long id) {
         logger.debug("Finding student method invoked");
-            return studentRepository.findById(id).orElseThrow(() -> new NoSuchStudentException(id));
+        return studentRepository.findById(id).orElseThrow(() -> new NoSuchStudentException(id));
     }
 
     public List<Student> findAllStudents() {
@@ -111,6 +111,52 @@ public class StudentService {
             return averageAge.getAsDouble();
         } else {
             throw new NoStudentsException();
+        }
+    }
+
+    public void printNamesInParallel() {
+        List<Student> students = studentRepository.findAll();
+        System.out.println("Первый студент " + students.get(0).getName());
+        System.out.println("Второй студент " + students.get(1).getName());
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(300);
+            } catch (InterruptedException e) {
+                System.err.println("Поток прерван");
+            }
+            System.out.println("Третий студент " + students.get(2).getName());
+            System.out.println("Четвертый студент " + students.get(3).getName());
+        }).start();
+
+        new Thread(() -> {
+            System.out.println("Пятый студент " + students.get(4).getName());
+            System.out.println("Шестой студент " + students.get(5).getName());
+        }).start();
+    }
+
+    public synchronized void printNamesSynchronized() {
+        List<Student> students = studentRepository.findAll();
+        System.out.println("Первый студент " + students.get(0).getName());
+        System.out.println("Второй студент " + students.get(1).getName());
+
+        Thread thread1 = new Thread(() -> {
+            System.out.println("Третий студент " + students.get(2).getName());
+            System.out.println("Четвертый студент " + students.get(3).getName());
+        });
+
+        Thread thread2 = new Thread(() -> {
+            System.out.println("Пятый студент " + students.get(4).getName());
+            System.out.println("Шестой студент " + students.get(5).getName());
+        });
+        thread1.start();
+        thread2.start();
+
+        try {
+            thread1.join();
+            thread2.join();
+        } catch (InterruptedException e) {
+            System.err.println("Ошибка при ожидании потоков");
         }
     }
 }
